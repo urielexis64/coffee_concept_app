@@ -1,16 +1,20 @@
 import 'package:coffe_app/coffee.dart';
 import 'package:flutter/material.dart';
 
+const _duration = Duration(milliseconds: 300);
+const _initialPage = 4.0;
+
 class CoffeeList extends StatefulWidget {
   @override
   _CoffeeListState createState() => _CoffeeListState();
 }
 
 class _CoffeeListState extends State<CoffeeList> {
-  final _pageCoffeeController = PageController(
-    viewportFraction: .35,
-  );
-  double _currentPage = 0;
+  final _pageCoffeeController =
+      PageController(viewportFraction: .35, initialPage: _initialPage.toInt());
+  final _pageTextController = PageController(initialPage: _initialPage.toInt());
+  double _currentPage = _initialPage;
+  double _textPage = _initialPage;
 
   void _coffeeScrollListener() {
     setState(() {
@@ -18,16 +22,23 @@ class _CoffeeListState extends State<CoffeeList> {
     });
   }
 
+  void _textScrollController() {
+    _textPage = _currentPage;
+  }
+
   @override
   void initState() {
     _pageCoffeeController.addListener((_coffeeScrollListener));
+    _pageTextController.addListener(_textScrollController);
     super.initState();
   }
 
   @override
   void dispose() {
     _pageCoffeeController.removeListener((_coffeeScrollListener));
+    _pageTextController.removeListener((_textScrollController));
     _pageCoffeeController.dispose();
+    _pageTextController.dispose();
     super.dispose();
   }
 
@@ -39,6 +50,9 @@ class _CoffeeListState extends State<CoffeeList> {
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
+        leading: BackButton(
+          color: Colors.black,
+        ),
       ),
       body: Stack(
         children: [
@@ -52,24 +66,21 @@ class _CoffeeListState extends State<CoffeeList> {
               BoxShadow(color: Colors.brown, blurRadius: 90, spreadRadius: 45)
             ])),
           ),
-          Positioned(
-            top: 0,
-            left: 0,
-            right: 0,
-            height: 100,
-            child: Container(
-              color: Colors.red,
-            ),
-          ),
           Transform.scale(
             scale: 1.6,
             alignment: Alignment.bottomCenter,
             child: PageView.builder(
                 controller: _pageCoffeeController,
                 scrollDirection: Axis.vertical,
+                onPageChanged: (value) {
+                  if (value < coffees.length) {
+                    _pageTextController.animateToPage(value,
+                        duration: _duration, curve: Curves.easeOut);
+                  }
+                },
                 itemCount: coffees.length + 1,
                 itemBuilder: (context, index) {
-                  if (index == 0) {
+                  if (index == 0 || index == coffees.length + 1) {
                     return const SizedBox.shrink();
                   }
                   final coffee = coffees[index - 1];
@@ -88,13 +99,63 @@ class _CoffeeListState extends State<CoffeeList> {
                           ..scale(value),
                         child: Opacity(
                             opacity: opacity,
-                            child: Image.asset(
-                              coffee.image,
-                              fit: BoxFit.fitHeight,
+                            child: Hero(
+                              tag: coffee.name,
+                              child: Image.asset(
+                                coffee.image,
+                                fit: BoxFit.fitHeight,
+                              ),
                             ))),
                   );
                 }),
-          )
+          ),
+          Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            height: 100,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Expanded(
+                    child: PageView.builder(
+                  scrollDirection: Axis.vertical,
+                  itemCount: coffees.length,
+                  controller: _pageTextController,
+                  physics: const NeverScrollableScrollPhysics(),
+                  itemBuilder: (context, index) {
+                    final opacity =
+                        (1 - (index - _textPage).abs()).clamp(0.0, 1.0);
+                    return Opacity(
+                        opacity: opacity,
+                        child: Center(
+                          child: _currentPage.toInt() == 12
+                              ? SizedBox.shrink()
+                              : Text(
+                                  coffees[index].name,
+                                  textAlign: TextAlign.center,
+                                  maxLines: 2,
+                                  style: TextStyle(
+                                      fontSize: 30,
+                                      fontWeight: FontWeight.bold),
+                                ),
+                        ));
+                  },
+                )),
+                AnimatedSwitcher(
+                  duration: _duration,
+                  child: _currentPage.toInt() == 12
+                      ? SizedBox.shrink()
+                      : Text(
+                          '\$${coffees[_currentPage.toInt()].price.toStringAsFixed(2)}',
+                          style: TextStyle(fontSize: 24),
+                          key: Key(coffees[_currentPage.toInt()].name),
+                        ),
+                )
+              ],
+            ),
+          ),
         ],
       ),
     );
