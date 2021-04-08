@@ -1,4 +1,4 @@
-import 'package:coffe_app/home_coffee.dart';
+import 'package:coffe_app/main_coffee.dart';
 import 'package:flutter/material.dart';
 
 void main() => runApp(MyApp());
@@ -9,6 +9,6 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
         debugShowCheckedModeBanner: false,
         title: 'Material App',
-        home: HomeCoffee());
+        home: MainCoffee());
   }
 }
